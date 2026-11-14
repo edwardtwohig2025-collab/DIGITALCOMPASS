@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive HTML Compass</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0;
+      background: #0d1117;
+      color: #f0f6fc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.4rem; letter-spacing: 0.5px; }
+    .readout {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: #58a6ff;
+    }
+    .compass-wrapper {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1c2128 60%, #11151c 100%);
+      border: 6px solid #30363d;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Fixed Top Marker */
+    .top-pointer {
+      position: absolute;
+      top: -14px;
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 16px solid #f85149;
+      z-index: 10;
+    }
+    /* Rotating Dial */
+    .dial {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      transition: transform 0.1s ease-out;
+    }
+    .cardinal {
+      position: absolute;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .north { top: 14px; left: 50%; transform: translateX(-50%); color: #f85149; }
+    .south { bottom: 14px; left: 50%; transform: translateX(-50%); color: #8b949e; }
+    .east  { right: 16px; top: 50%; transform: translateY(-50%); color: #8b949e; }
+    .west  { left: 16px; top: 50%; transform: translateY(-50%); color: #8b949e; }
+
+    /* Center Needle */
+    .needle {
+      position: absolute;
+      width: 14px;
+      height: 180px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .needle-north {
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-bottom: 90px solid #f85149;
+    }
+    .needle-south {
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 90px solid #c9d1d9;
+    }
+    .center-pin {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #f0f6fc;
+      border: 3px solid #30363d;
+      border-radius: 50%;
+      z-index: 5;
+    }
+    .controls {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 300px;
+    }
+    button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      background: #238636;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { background: #2ea043; }
+    .slider-box {
+      width: 100%;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+    input[type="range"] { width: 100%; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <h1>🧭 Digital Compass</h1>
+  <div class="readout" id="headingText">0° N</div>
+
+  <div class="compass-wrapper">
+    <div class="top-pointer"></div>
+    <div class="dial" id="dial">
+      <span class="cardinal north">N</span>
+      <span class="cardinal east">E</span>
+      <span class="cardinal south">S</span>
+      <span class="cardinal west">W</span>
+      <div class="needle">
+        <div class="needle-north"></div>
+        <div class="needle-south"></div>
+      </div>
+    </div>
+    <div class="center-pin"></div>
+  </div>
+
+  <div class="controls">
+    <button id="sensorBtn" onclick="enableCompass()">Enable Mobile Sensor</button>
+    <div class="slider-box">
+      <label for="manualAngle">Desktop Test Rotation</label>
+      <input type="range" id="manualAngle" min="0" max="359" value="0" oninput="setHeading(this.value)" />
+    </div>
+  </div>
+
+  <script>
+    const dial = document.getElementById('dial');
+    const headingText = document.getElementById('headingText');
+    const slider = document.getElementById('manualAngle');
+
+    function getDirection(deg) {
+      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    function setHeading(degrees) {
+      const deg = Math.round((Number(degrees) + 360) % 360);
+      dial.style.transform = `rotate(${-deg}deg)`;
+      headingText.textContent = `${deg}° ${getDirection(deg)}`;
+      slider.value = deg;
+    }
+
+    function handleOrientation(event) {
+      let heading = null;
+      if (typeof event.webkitCompassHeading === 'number') {
+        heading = event.webkitCompassHeading; // iOS Safari
+      } else if (event.alpha !== null) {
+        heading = 360 - event.alpha; // Android / Standard browsers
+      }
+      if (heading !== null) setHeading(heading);
+    }
+
+    async function enableCompass() {
+      const btn = document.getElementById('sensorBtn');
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const response = await DeviceOrientationEvent.requestPermission();
+          if (response === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+            btn.textContent = 'Sensor Active';
+          }
+        } catch (err) {
+          alert('Compass permission denied or unavailable.');
+        }
+      } else {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        btn.textContent = 'Sensor Listening...';
+      }
+    }
+  </script>
+</body>
+</html>
